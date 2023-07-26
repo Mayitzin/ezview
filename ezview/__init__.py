@@ -20,9 +20,15 @@ Viewing documentation using IPython
 To see which functions are available in `ezview`, type ``ezview.<TAB>``
 (where ``<TAB>`` refers to the TAB key). To view the docstring for a function,
 use ``ezview.function_name?<ENTER>`` (to view the docstring) and
-``dview.function_name??<ENTER>`` (to view the source code).
+``ezview.function_name??<ENTER>`` (to view the source code).
 
 """
+
+from .qplot import (
+    QPlot,
+    QPlotData,
+    QPlot3D
+)
 
 MAJOR       = 0
 MINOR       = 1
@@ -31,6 +37,6 @@ PRE_RELEASE = ''
 
 def get_version(short: bool = False) -> str:
     """Return the version number as a string."""
-    if short or PRE_RELEASE == "0":
+    if short or not PRE_RELEASE:
         return f"{MAJOR}.{MINOR}.{PATCH}"
     return f"{MAJOR}.{MINOR}.{PATCH}-{PRE_RELEASE}"
