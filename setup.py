@@ -9,20 +9,24 @@ EZView is compatible with Python 3.10 and newer.
 
 import sys
 from setuptools import setup, find_packages
-from .ezview import get_version
-
-__version__ = get_version()
 
 if sys.version_info < (3, 10):
-    raise EnvironmentError("Python version >= 3.10 required. Python 3.11 is recommended")
+    raise EnvironmentError("Python version >= 3.10 required.")
 
 metadata = dict(
     name='ezview',
-    version=__version__,
-    description='Data Visualization Tools.',
+    version='0.1.0',
+    description="Light visualization toolkit for motion data.",
+    packages=find_packages(),
     long_description=__doc__,
     author='Mario Garcia',
     author_email='mario@myneeno.com',
+    license="MIT",
+    classifiers=[
+        "License :: OSI Approved :: MIT License",
+        "Programming Language :: Python :: 3.10",
+        "Operating System :: OS Independent",
+    ],
     keywords="sensor plotting Qt data visualization",
     install_requires=['numpy',
                       'matplotlib',
@@ -31,7 +35,7 @@ metadata = dict(
                       'PyQt5',
                       'PyOpenGL',
                       'PyOpenGL_accelerate'],
-    packages=find_packages()
+    python_requires=">=3.10",
 )
 
 setup(**metadata)
