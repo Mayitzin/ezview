@@ -88,9 +88,6 @@ def plot_data(*data, **kw):
     data : array
         Arrays with the contents of data to plot. They could be 1- (single line)
         or 2-dimensional.
-
-    Extra Parameters
-    ----------------
     title : int or str
         Window title as number or label.
     subtitles : list
@@ -129,26 +126,33 @@ def plot_data(*data, **kw):
     shades_spans = kw.get("shadeTouch")
     num_subplots = len(data)        # Number of given arrays
     # Create figure with vertically stacked subplots
-    fig, axs = plt.subplots(num_subplots, 1, num=title, squeeze=False, sharex=kw.get('sharex', True), sharey=kw.get('sharey', False))
-    for i, d in enumerate(data):
-        d = np.copy(d)
-        if d.ndim > 2:
+    fig, axs = plt.subplots(
+        num_subplots,
+        1,
+        num=title,
+        squeeze=False,
+        sharex=kw.get('sharex', True),
+        sharey=kw.get('sharey', False)
+        )
+    for i, array in enumerate(data):
+        array = np.copy(array)
+        if array.ndim > 2:
             raise ValueError(f"Data array {i} has more than 2 dimensions.")
-        if d.ndim < 2:
+        if array.ndim < 2:
             # Plot a single line in the subplot (1-dimensional array)
             label = labels[i][0] if labels else None
-            index = index if index is not None else np.arange(d.shape[0])
-            axs[i, 0].plot(index, d, color=COLORS[0], lw=0.5, ls='-', label=label)
+            index = index if index is not None else np.arange(array.shape[0])
+            axs[i, 0].plot(index, array, color=COLORS[0], lw=0.5, ls='-', label=label)
         else:
             # Plot multiple lines in the subplot (2-dimensional array)
-            d_sz = d.shape
-            if d_sz[0] > d_sz[1]:
+            array_sz = array.shape
+            if array_sz[0] > array_sz[1]:
                 # Transpose array if it has more rows than columns
-                d = d.T
-            for j, row in enumerate(d):
+                array = array.T
+            for j, row in enumerate(array):
                 label = None
                 if labels:
-                    if len(labels[i]) == len(d):
+                    if len(labels[i]) == len(array):
                         label = labels[i][j]
                 axs[i, 0].plot(row, color=COLORS[j], lw=0.5, ls='-', label=label)
         axs[i, 0].grid(axis='y')
@@ -172,7 +176,7 @@ def plot_data(*data, **kw):
                     for k, v in shades_spans.items():
                         span = [v['start'], v['stop']]
                         axs[i, 0].axvspan(span[0], span[1], color='gray', alpha=0.1)
-                        axs[i, 0].text(int(np.mean(span)), max(d), k, ha='center')
+                        axs[i, 0].text(int(np.mean(span)), max(array), k, ha='center')
             except:
                 print("No spans were given")
         if labels:
