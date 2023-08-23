@@ -123,6 +123,7 @@ def plot_data(*data, **kw):
     ylabels = kw.get("ylabels")
     yscales = kw.get("yscales")
     index = kw.get("index")
+    indices = kw.get("indices")
     shades_spans = kw.get("shadeTouch")
     num_subplots = len(data)        # Number of given arrays
     # Create figure with vertically stacked subplots
@@ -131,7 +132,7 @@ def plot_data(*data, **kw):
         1,
         num=title,
         squeeze=False,
-        sharex=kw.get('sharex', True),
+        sharex=kw.get('sharex', "indices" not in kw),
         sharey=kw.get('sharey', False)
         )
     for i, array in enumerate(data):
@@ -149,12 +150,13 @@ def plot_data(*data, **kw):
             if array_sz[0] > array_sz[1]:
                 # Transpose array if it has more rows than columns
                 array = array.T
+            index = indices[i] if indices is not None else np.arange(array_sz.shape[1])
             for j, row in enumerate(array):
                 label = None
                 if labels:
                     if len(labels[i]) == len(array):
                         label = labels[i][j]
-                axs[i, 0].plot(row, color=COLORS[j], lw=0.5, ls='-', label=label)
+                axs[i, 0].plot(index, row, color=COLORS[j], lw=0.5, ls='-', label=label)
         axs[i, 0].grid(axis='y')
         if subtitles:
             axs[i, 0].set_title(subtitles[i])
