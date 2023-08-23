@@ -277,10 +277,12 @@ class QPlot3D(QPlot):
         super().__init__()
         self.win = self.add_window(**kw)
         self.add_grid('z', -1)
-        self.stroke_coords = []
         self.split = kw.get("split")
         self.scattered = kw.get("scattered", False)
         self.data = data
+        self.lines = []
+        self.frames = kw.get('frames')
+        self.frames_positions = kw.get('frames_positions')
         if self.data is not None:
             if self.data.shape[1] != 3 or self.data.ndim != 2:
                 raise ValueError(f"Input data must be of shape (N, 3). Got {self.data.shape}")
@@ -292,14 +294,18 @@ class QPlot3D(QPlot):
                                 self.add_scatter(self.data[s[0]:s[1], :])
                             else:
                                 self.add_line(self.data[s[0]:s[1], :])
-                    except:
-                        print("[ERROR] Wrong format. Check your stroke spans")
+                    except ValueError as e:
+                        print(e, "Check your trace spans")
                 else:
-                    self.stroke_coords = self.data.tolist()
                     if self.scattered:
                         self.add_scatter(self.data)
                     else:
-                        self.add_line(self.data)
+                        self.lines.append(self.add_line(self.data))
+        if self.frames is not None:
+            for idx, frame in enumerate(self.frames):
+                frame_pos = self.frames_positions[idx] if self.frames_positions is not None else None
+                self.add_frame(frame, position=frame_pos, scale=0.25)
+        self.launch_app()
 
     def add_window(self, **kw):
         """
@@ -360,14 +366,13 @@ class QPlot3D(QPlot):
         points : pyqtgraph.opengl.GLLinePlotItem
             Created line plot item.
         """
-        color = kw.get('color', COLORS_FLOATS[3])
-        width = kw.get('width', 1.0)
-        antialias = kw.get('antialias', False)
         if data is None:
             data = np.zeros((1, 3))
         if data.shape[1] != 3 or data.ndim != 2:
-            print("[ERROR] Input data must be of shape (N, 3). Got {}".format(data.shape))
-            return None
+            raise ValueError(f"Input data must be of shape (N, 3). Got {data.shape}")
+        color = kw.get('color', COLORS_FLOATS[3])
+        width = kw.get('width', 1.0)
+        antialias = kw.get('antialias', False)
         line = gl.GLLinePlotItem(pos=data, color=color, antialias=antialias, width=width)
         self.win.addItem(line)
         return line
