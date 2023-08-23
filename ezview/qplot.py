@@ -283,7 +283,7 @@ class QPlot3D(QPlot):
         self.data = data
         if self.data is not None:
             if self.data.shape[1] != 3 or self.data.ndim != 2:
-                print(f"[ERROR] Input data must be of shape (N, 3). Got {self.data.shape}")
+                raise ValueError(f"Input data must be of shape (N, 3). Got {self.data.shape}")
             else:
                 if self.split is not None:
                     try:
