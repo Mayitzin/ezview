@@ -12,38 +12,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 from .colors import COLORS
 
-
-def get_touch_spans(touch_data):
-    """
-    Return the indices of the start and end of each touching region.
-
-    Parameters
-    ----------
-    touch_data : array
-        Array of integer ones and zeros denoting when tip sensor is pressed.
-
-    Returns
-    -------
-    spans : array
-        2D array of each line's span.
-
-    """
-    ups = np.argwhere(np.diff(touch_data)>0).flatten()
-    dws = np.argwhere(np.diff(touch_data)<0).flatten()
-    # Set default values if incomplete strokes
-    if len(ups) < 1:
-        ups = np.array([0])
-    if len(dws) < 1:
-        dws = np.array([len(touch_data)])
-    # Remove indices of incomplete strokes
-    if dws[0] < ups[0]:
-        ups = np.r_[0.0, ups]
-    if ups[-1] > dws[-1]:
-        dws = np.r_[dws, len(touch_data)]
-    # Pack indices in 2D array
-    indices = np.vstack((ups, dws)).transpose()
-    return indices.astype(int)
-
 def _set_axes_equal(ax):
     """
     Make axes of 3D plot ``ax`` have equal scale along its 3 axes.
