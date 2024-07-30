@@ -29,7 +29,7 @@ metadata = dict(
     ],
     keywords="sensor plotting Qt data visualization",
     install_requires=['numpy',
-                      'matplotlib',
+                      'matplotlib>=3.6',
                       'sip',
                       'pyqtgraph',
                       'PyQt5',
