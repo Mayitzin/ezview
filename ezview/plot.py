@@ -51,7 +51,7 @@ def add_ellipsoid(ax, params: list | dict, num_points: int = 20, color = 'k', lw
     x, y, z = ellipsoid(center=center, axes=axes, num_points=expected_params['num_points'])   # Ellipsoid mesh
     ax.plot_wireframe(x, y, z, color=expected_params['color'], lw=expected_params['lw'])
 
-def add_frame(ax, dcm, position = None, color: str | list = None, scale: float = 1.0, lw: float = 1.0) -> None:
+def add_frame(ax, dcm: np.ndarray, position = None, color: str | list = None, scale: float = 1.0, lw: float = 1.0, **kwargs) -> None:
     """
     Add a frame to an existing 3D plot.
 
@@ -61,8 +61,12 @@ def add_frame(ax, dcm, position = None, color: str | list = None, scale: float =
         3D axis where the frame will be added.
     frame : numpy.ndarray
         3-by-3 array with the frame's axes. Each row is a vector.
+    position : numpy.ndarray, optional
+        3-element array with the frame's position. Default is [0, 0, 0].
     color : str or list of strings, optional
         Color of the frame. Default is None, which iterates over RGB.
+    scale : float, optional
+        Scale factor of the frame. Default is 1.0.
     lw : float, optional
         Line width of the frame. Default is 1.0.
 
@@ -70,6 +74,11 @@ def add_frame(ax, dcm, position = None, color: str | list = None, scale: float =
     if not hasattr(ax, 'plot'):
         raise TypeError("The given axis is not a 3D plot item.")
     colors = ([color]*3 if isinstance(color, str) else color) if color is not None else COLORS[:3]
+    # Extract only the expected parameters from kwargs
+    expected_params = {'scale': scale, 'lw': lw}
+    for key in expected_params:
+        if key in kwargs:
+            expected_params[key] = kwargs[key]
     frame_coords = frame(dcm, position, scale)
     for axis in frame_coords:
         ax.plot(*axis, color=colors.pop(0), lw=lw)
@@ -113,7 +122,8 @@ def add_items(ax, **kwargs) -> None:
                 raise TypeError(f"Unknown type for 'lines': {type(data)}. Try a list or a dict.")
     if 'frames' in kwargs:
         for k, v in kwargs['frames'].items():
-            add_frame(ax, v['attitude'], v['position'])
+            data = v.copy()
+            add_frame(ax, dcm=data['attitude'], position=data.pop('position'), **data)
     if 'ellipsoids' in kwargs:
         for k, v in kwargs['ellipsoids'].items():
             add_ellipsoid(ax, v, **v)
