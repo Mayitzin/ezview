@@ -11,6 +11,112 @@ for documentation and journal quality.
 import numpy as np
 import matplotlib.pyplot as plt
 from .colors import COLORS
+from .items import ellipsoid
+from .items import frame
+
+def add_ellipsoid(ax, params: list | dict, num_points: int = 20, color = 'k', lw = 0.5, **kwargs) -> None:
+    """
+    Add a ellipsoid to an existing 3D plot.
+
+    Parameters
+    ----------
+    ax : matplotlib.axes.Axes3D
+        3D axis where the ellipsoid will be added.
+    params : list or dict.
+        List or dictionary with the parameters to draw an ellipsoid. If a list
+        is given, it must be of the form [[a, b, c], [x, y, z]], where a, b, c
+        are the coordinates of the ellipsoid's center, and x, y, z are the
+        ellipsoid's main axes lengths. If a dictionary is given, it must be of
+        the form {'center': [a, b, c], 'axes': [x, y, z]}
+    num_points : int, optional
+        Number of points, per axis, to use in the mesh. Default is 20.
+    color : str, optional
+        Color of the ellipsoid. Default is 'k'.
+    lw : float, optional
+        Line width of the ellipsoid. Default is 0.5.
+
+    """
+    if isinstance(params, (list, tuple, np.ndarray)):
+        center, axes = params
+    elif isinstance(params, dict):
+        center = params.get("center", np.zeros(3))
+        axes = params.get("axes", np.ones(3))
+    else:
+        raise TypeError("Unknown type for 'sphere'. Try a list or a dict.")
+    # Extract only the expected parameters from kwargs
+    expected_params = {'num_points': num_points, 'color': color, 'lw': lw}
+    for key in expected_params:
+        if key in kwargs:
+            expected_params[key] = kwargs[key]
+    x, y, z = ellipsoid(center=center, axes=axes, num_points=expected_params['num_points'])   # Ellipsoid mesh
+    ax.plot_wireframe(x, y, z, color=expected_params['color'], lw=expected_params['lw'])
+
+def add_frame(ax, dcm, position = None, color: str | list = None, scale: float = 1.0, lw: float = 1.0) -> None:
+    """
+    Add a frame to an existing 3D plot.
+
+    Parameters
+    ----------
+    ax : mpl_toolkits.mplot3d.axes3d.Axes3D
+        3D axis where the frame will be added.
+    frame : numpy.ndarray
+        3-by-3 array with the frame's axes. Each row is a vector.
+    color : str or list of strings, optional
+        Color of the frame. Default is None, which iterates over RGB.
+    lw : float, optional
+        Line width of the frame. Default is 1.0.
+
+    """
+    if not hasattr(ax, 'plot'):
+        raise TypeError("The given axis is not a 3D plot item.")
+    colors = ([color]*3 if isinstance(color, str) else color) if color is not None else COLORS[:3]
+    frame_coords = frame(dcm, position, scale)
+    for axis in frame_coords:
+        ax.plot(*axis, color=colors.pop(0), lw=lw)
+
+def add_items(ax, **kwargs) -> None:
+    """
+    Add items to an existing 3D plot.
+
+    Parameters
+    ----------
+    ax : mpl_toolkits.mplot3d.axes3d.Axes3D
+        3D axis where the items will be added.
+    kwargs : dict
+        Dictionary with the items to be added. The keys are the items' types,
+        and the values are the items' data and parameters.
+
+    """
+    if 'scatter' in kwargs:
+        for k, data in kwargs['scatter'].items():
+            if isinstance(data, (list, tuple, np.ndarray)):
+                if isinstance(data, np.ndarray):
+                    data = data.T
+                ax.scatter(*data)
+            elif isinstance(data, dict):
+                data = data.copy()
+                points = data.pop('data')
+                ax.scatter(*points.T, **data)
+            else:
+                raise TypeError(f"Unknown type for 'scatter': {type(data)}. Try a list or a dict.")
+    if 'lines' in kwargs:
+        for k, data in kwargs['lines'].items():
+            if isinstance(data, (list, tuple, np.ndarray)):
+                if isinstance(data, np.ndarray):
+                    data = data.T
+                ax.plot(*data)
+            elif isinstance(data, dict):
+                data = data.copy()
+                lines = data.pop('data')
+                ax.plot(*lines.T, **data)
+            else:
+                raise TypeError(f"Unknown type for 'lines': {type(data)}. Try a list or a dict.")
+    if 'frames' in kwargs:
+        for k, v in kwargs['frames'].items():
+            add_frame(ax, v['attitude'], v['position'])
+    if 'ellipsoids' in kwargs:
+        for k, v in kwargs['ellipsoids'].items():
+            add_ellipsoid(ax, v, **v)
 
 def plot_data(*data, **kw):
     """
@@ -127,50 +233,34 @@ def plot_data(*data, **kw):
     fig.tight_layout()
     plt.show()
 
-def plot3(data, style='line', sphere=None) -> None:
+def plot3(**kwargs) -> None | tuple:
     """
     Plot 3-dimensional data in a cartesian coordinate system.
 
     Parameters
     ----------
-    data : numpy.ndarray
-        M-by-3 array of data.
-    sphere : list or dict.
-        List or dictionary with the parameters to draw a sphere. If a list is
-        given, it must be of the form [[a, b, c], [x, y, z]], where a, b, c are
-        the coordinates of the sphere's center, and x, y, z are the sphere's
-        main axes lengths. If a dictionary is given, it must be of the form
-        {'center': [a, b, c], 'axes': [x, y, z]}. If None, no sphere is drawn.
+    show : bool, optional
+        Show the plot after creating it. Default is True. Otherwise, the plot
+        Figure and Axes objects are returned.
 
     """
+    # Build the plot
     fig = plt.figure()
     ax = fig.add_subplot(projection='3d')
-    if style.lower() == 'scatter':
-        ax.scatter(data[:, 0], data[:, 1], data[:, 2], c=COLORS[0], alpha=0.1)
-    else:
-        ax.plot3D(data[:, 0], data[:, 1], data[:, 2], COLORS[0], lw=0.7)
+
+    # Add items
+    add_items(ax, **kwargs)
+
+    # Set properties of plot
+    plt.tight_layout()
     ax.set_xlabel('X')
     ax.set_ylabel('Y')
     ax.set_zlabel('Z')
-    if sphere is not None:
-        if isinstance(sphere, (list, tuple, np.ndarray)):
-            center, axes = sphere
-        elif isinstance(sphere, dict):
-            center = sphere.get("center", np.zeros(3))
-            axes = sphere.get("axes", np.ones(3))
-            # projection = sphere.get("projection", np.identity(3))
-        else:
-            raise TypeError("Unknown type for 'sphere'. Try a list or a dict.")
-        cx, cy, cz = center
-        sx, sy, sz = axes
-        u, v = np.mgrid[0:2*np.pi:20j, 0:np.pi:10j]
-        x = np.cos(u)*np.sin(v) * sx + cx
-        y = np.sin(u)*np.sin(v) * sy + cy
-        z = np.cos(v) * sz + cz
-        # x, y, z = projection @ np.c_[x, y, z].T
-        ax.plot_wireframe(x, y, z, color=COLORS[2], lw=0.3)
     ax.set_aspect('equal')      # Added in matplotlib 3.6
-    plt.tight_layout()
+
+    # Show or return the plot
+    if not kwargs.get('show', True):
+        return fig, ax
     plt.show()
 
 def plot_kinematics(data, ref_data: np.ndarray = None, tip: np.ndarray = None, split: np.ndarray = None) -> None:
