@@ -97,29 +97,31 @@ def add_items(ax, **kwargs) -> None:
 
     """
     if 'scatter' in kwargs:
-        for k, data in kwargs['scatter'].items():
-            if isinstance(data, (list, tuple, np.ndarray)):
-                if isinstance(data, np.ndarray):
-                    data = data.T
-                ax.scatter(*data)
-            elif isinstance(data, dict):
-                data = data.copy()
-                points = data.pop('data')
-                ax.scatter(*points.T, **data)
-            else:
-                raise TypeError(f"Unknown type for 'scatter': {type(data)}. Try a list or a dict.")
+        data = kwargs['scatter']
+        if isinstance(data, (list, tuple, np.ndarray)):
+            if isinstance(data, np.ndarray):
+                data = data.T
+            ax.scatter(*data)
+        elif isinstance(data, dict):
+            scatter_dict = kwargs['scatter'].copy()
+            for k, v in scatter_dict.items():
+                points = v.pop('data')    # Get N-by-3 numpy array from dict
+                ax.scatter(*points.T, **v)
+        else:
+            raise TypeError(f"Unknown type for 'scatter': {type(data)}. Try a list or a dict.")
     if 'lines' in kwargs:
-        for k, data in kwargs['lines'].items():
-            if isinstance(data, (list, tuple, np.ndarray)):
-                if isinstance(data, np.ndarray):
-                    data = data.T
-                ax.plot(*data)
-            elif isinstance(data, dict):
-                data = data.copy()
-                lines = data.pop('data')
-                ax.plot(*lines.T, **data)
-            else:
-                raise TypeError(f"Unknown type for 'lines': {type(data)}. Try a list or a dict.")
+        data = kwargs['lines']
+        if isinstance(data, (list, tuple, np.ndarray)):
+            if isinstance(data, np.ndarray):
+                data = data.T
+            ax.plot(*data)
+        elif isinstance(data, dict):
+            lines_dict = kwargs['lines'].copy()
+            for k, v in lines_dict:
+                lines = v.pop('data')   # Get N-by-3 numpy array from dict
+                ax.plot(*lines.T, **v)
+        else:
+            raise TypeError(f"Unknown type for 'lines': {type(data)}. Try a list or a dict.")
     if 'frames' in kwargs:
         for k, v in kwargs['frames'].items():
             data = v.copy()
