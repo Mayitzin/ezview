@@ -8,6 +8,7 @@ for documentation and journal quality.
 
 """
 
+import copy
 import numpy as np
 import matplotlib.pyplot as plt
 from .colors import COLORS
@@ -103,12 +104,12 @@ def add_items(ax, **kwargs) -> None:
                 data = data.T
             ax.scatter(*data)
         elif isinstance(data, dict):
-            scatter_dict = kwargs['scatter'].copy()
+            scatter_dict = copy.deepcopy(data)
             for k, v in scatter_dict.items():
                 points = v.pop('data')    # Get N-by-3 numpy array from dict
                 ax.scatter(*points.T, **v)
         else:
-            raise TypeError(f"Unknown type for 'scatter': {type(data)}. Try a list or a dict.")
+            raise TypeError(f"Unknown type for 'scatter': {type(data)}. Try an array, list or dict.")
     if 'lines' in kwargs:
         data = kwargs['lines']
         if isinstance(data, (list, tuple, np.ndarray)):
@@ -116,12 +117,12 @@ def add_items(ax, **kwargs) -> None:
                 data = data.T
             ax.plot(*data)
         elif isinstance(data, dict):
-            lines_dict = kwargs['lines'].copy()
-            for k, v in lines_dict:
+            lines_dict = copy.deepcopy(data)
+            for k, v in lines_dict.items():
                 lines = v.pop('data')   # Get N-by-3 numpy array from dict
                 ax.plot(*lines.T, **v)
         else:
-            raise TypeError(f"Unknown type for 'lines': {type(data)}. Try a list or a dict.")
+            raise TypeError(f"Unknown type for 'lines': {type(data)}. Try an array, list or dict.")
     if 'frames' in kwargs:
         for k, v in kwargs['frames'].items():
             data = v.copy()
