@@ -45,12 +45,12 @@ def add_ellipsoid(ax, params: list | dict, num_points: int = 20, color = 'k', lw
     else:
         raise TypeError("Unknown type for 'sphere'. Try a list or a dict.")
     # Extract only the expected parameters from kwargs
-    expected_params = {'num_points': num_points, 'color': color, 'lw': lw}
+    expected_params = {'num_points': num_points, 'color': color, 'lw': lw, 'alpha': 0.5}
     for key in expected_params:
         if key in kwargs:
             expected_params[key] = kwargs[key]
     x, y, z = ellipsoid(center=center, axes=axes, num_points=expected_params['num_points'])   # Ellipsoid mesh
-    ax.plot_wireframe(x, y, z, color=expected_params['color'], lw=expected_params['lw'])
+    ax.plot_wireframe(x, y, z, color=expected_params['color'], lw=expected_params['lw'], alpha=expected_params['alpha'])
 
 def add_frame(ax, dcm: np.ndarray, position = None, color: str | list = None, scale: float = 1.0, lw: float = 1.0, **kwargs) -> None:
     """
