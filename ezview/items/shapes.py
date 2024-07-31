@@ -100,6 +100,10 @@ def frame(dcm: np.ndarray = None, position: np.ndarray = None, scale: float = 1.
         Scale factor for the frame's axes. Default is 1.0.
 
     """
+    if dcm is None:
+        dcm = np.identity(3)
+    if position is None:
+        position = np.zeros(3)
     f_coords = []
     for column_index in range(3):
         axis_end = dcm[:, column_index]*scale + position
