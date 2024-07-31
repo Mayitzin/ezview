@@ -5,3 +5,4 @@ Graphical items to ease the visualization of data
 """
 
 from .shapes import ellipsoid
+from .shapes import frame
