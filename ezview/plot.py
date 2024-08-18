@@ -209,7 +209,7 @@ def plot_data(*data, **kw):
             if array_sz[0] > array_sz[1]:
                 # Transpose array if it has more rows than columns
                 array = array.T
-            index = indices[i] if indices is not None else np.arange(array_sz.shape[1])
+            index = indices[i] if indices is not None else np.arange(array_sz[0])
             for j, row in enumerate(array):
                 label = None
                 if labels:
@@ -226,7 +226,7 @@ def plot_data(*data, **kw):
         if yscales:
             axs[i, 0].set_yscale(yscales[i])
         if shades_spans is not None:
-            # Add shaded areas corresponding to TOUCHING areas
+            # Add shaded areas
             try:
                 if isinstance(shades_spans, (list, np.ndarray)):
                     current_spans = shades_spans[i] if np.copy(shades_spans).ndim > 2 else shades_spans
