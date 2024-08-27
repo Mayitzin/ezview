@@ -282,7 +282,7 @@ class QPlot3D(QPlot):
         self.data = data
         self.lines = []
         self.frames = kw.get('frames')
-        self.frames_positions = kw.get('frames_positions')
+        # self.frames_positions = kw.get('frames_positions')
         if self.data is not None:
             if self.data.shape[1] != 3 or self.data.ndim != 2:
                 raise ValueError(f"Input data must be of shape (N, 3). Got {self.data.shape}")
@@ -302,9 +302,8 @@ class QPlot3D(QPlot):
                     else:
                         self.lines.append(self.add_line(self.data))
         if self.frames is not None:
-            for idx, frame in enumerate(self.frames):
-                frame_pos = self.frames_positions[idx] if self.frames_positions is not None else None
-                self.add_frame(frame, position=frame_pos, scale=0.25)
+            for frame_pair in self.frames:
+                self.add_frame(frame_pair[0], position=frame_pair[1], scale=0.25)
         self.launch_app()
 
     def add_window(self, **kw):
@@ -358,7 +357,7 @@ class QPlot3D(QPlot):
         color : list of floats, optional. Default: [1.0, 0.0, 0.0, 1.0]
             Color of sphere in float values between 0.0 and 1.0 with the RGBA
             format.
-        width : float, default: 1.0
+        width : float, default: 2.0
             Width of the line.
 
         Returns
@@ -371,7 +370,7 @@ class QPlot3D(QPlot):
         if data.shape[1] != 3 or data.ndim != 2:
             raise ValueError(f"Input data must be of shape (N, 3). Got {data.shape}")
         color = kw.get('color', COLORS_FLOATS[3])
-        width = kw.get('width', 1.0)
+        width = kw.get('width', 2.0)
         antialias = kw.get('antialias', False)
         line = gl.GLLinePlotItem(pos=data, color=color, antialias=antialias, width=width)
         self.win.addItem(line)
