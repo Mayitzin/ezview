@@ -8,69 +8,128 @@ for documentation and journal quality.
 
 """
 
+import copy
 import numpy as np
 import matplotlib.pyplot as plt
 from .colors import COLORS
+from .items import ellipsoid
+from .items import frame
 
-
-def get_touch_spans(touch_data):
+def add_ellipsoid(ax, params: list | dict, num_points: int = 20, color = 'k', lw = 0.5, **kwargs) -> None:
     """
-    Return the indices of the start and end of each touching region.
+    Add a ellipsoid to an existing 3D plot.
 
     Parameters
     ----------
-    touch_data : array
-        Array of integer ones and zeros denoting when tip sensor is pressed.
-
-    Returns
-    -------
-    spans : array
-        2D array of each line's span.
+    ax : matplotlib.axes.Axes3D
+        3D axis where the ellipsoid will be added.
+    params : list or dict.
+        List or dictionary with the parameters to draw an ellipsoid. If a list
+        is given, it must be of the form [[a, b, c], [x, y, z]], where a, b, c
+        are the coordinates of the ellipsoid's center, and x, y, z are the
+        ellipsoid's main axes lengths. If a dictionary is given, it must be of
+        the form {'center': [a, b, c], 'axes': [x, y, z]}
+    num_points : int, optional
+        Number of points, per axis, to use in the mesh. Default is 20.
+    color : str, optional
+        Color of the ellipsoid. Default is 'k'.
+    lw : float, optional
+        Line width of the ellipsoid. Default is 0.5.
 
     """
-    ups = np.argwhere(np.diff(touch_data)>0).flatten()
-    dws = np.argwhere(np.diff(touch_data)<0).flatten()
-    # Set default values if incomplete strokes
-    if len(ups) < 1:
-        ups = np.array([0])
-    if len(dws) < 1:
-        dws = np.array([len(touch_data)])
-    # Remove indices of incomplete strokes
-    if dws[0] < ups[0]:
-        ups = np.r_[0.0, ups]
-    if ups[-1] > dws[-1]:
-        dws = np.r_[dws, len(touch_data)]
-    # Pack indices in 2D array
-    indices = np.vstack((ups, dws)).transpose()
-    return indices.astype(int)
+    if isinstance(params, (list, tuple, np.ndarray)):
+        center, axes = params
+    elif isinstance(params, dict):
+        center = params.get("center", np.zeros(3))
+        axes = params.get("axes", np.ones(3))
+    else:
+        raise TypeError("Unknown type for 'sphere'. Try a list or a dict.")
+    # Extract only the expected parameters from kwargs
+    expected_params = {'num_points': num_points, 'color': color, 'lw': lw, 'alpha': 0.5}
+    for key in expected_params:
+        if key in kwargs:
+            expected_params[key] = kwargs[key]
+    x, y, z = ellipsoid(center=center, axes=axes, num_points=expected_params['num_points'])   # Ellipsoid mesh
+    ax.plot_wireframe(x, y, z, color=expected_params['color'], lw=expected_params['lw'], alpha=expected_params['alpha'])
 
-def _set_axes_equal(ax):
+def add_frame(ax, dcm: np.ndarray, position = None, color: str | list = None, scale: float = 1.0, lw: float = 1.0, **kwargs) -> None:
     """
-    Make axes of 3D plot ``ax`` have equal scale along its 3 axes.
+    Add a frame to an existing 3D plot.
 
     Parameters
     ----------
-    ax : axes.SubplotBase subclass of Axes (or a subclass of Axes)
-        Matplotlib axis, e.g., as output from plt.gca().
+    ax : mpl_toolkits.mplot3d.axes3d.Axes3D
+        3D axis where the frame will be added.
+    frame : numpy.ndarray
+        3-by-3 array with the frame's axes. Each row is a vector.
+    position : numpy.ndarray, optional
+        3-element array with the frame's position. Default is [0, 0, 0].
+    color : str or list of strings, optional
+        Color of the frame. Default is None, which iterates over RGB.
+    scale : float, optional
+        Scale factor of the frame. Default is 1.0.
+    lw : float, optional
+        Line width of the frame. Default is 1.0.
+
     """
-    x_limits = ax.get_xlim3d()
-    y_limits = ax.get_ylim3d()
-    z_limits = ax.get_zlim3d()
-    # Compute ranges along each axis
-    x_range = abs(x_limits[1] - x_limits[0])
-    x_middle = np.mean(x_limits)
-    y_range = abs(y_limits[1] - y_limits[0])
-    y_middle = np.mean(y_limits)
-    z_range = abs(z_limits[1] - z_limits[0])
-    z_middle = np.mean(z_limits)
+    if not hasattr(ax, 'plot'):
+        raise TypeError("The given axis is not a 3D plot item.")
+    colors = ([color]*3 if isinstance(color, str) else color) if color is not None else COLORS[:3]
+    # Extract only the expected parameters from kwargs
+    expected_params = {'scale': scale, 'lw': lw}
+    for key in expected_params:
+        if key in kwargs:
+            expected_params[key] = kwargs[key]
+    frame_coords = frame(dcm, position, scale)
+    for axis in frame_coords:
+        ax.plot(*axis, color=colors.pop(0), lw=lw)
 
-    # The plot bounding box is a sphere in the sense of the infinity
-    # norm, hence I call half the max range the plot radius.
-    plot_radius = 0.5*max([x_range, y_range, z_range])
+def add_items(ax, **kwargs) -> None:
+    """
+    Add items to an existing 3D plot.
 
-    ax.set_xlim3d([x_middle - plot_radius, x_middle + plot_radius])
-    ax.set_ylim3d([y_middle - plot_radius, y_middle + plot_radius])
-    ax.set_zlim3d([z_middle - plot_radius, z_middle + plot_radius])
+    Parameters
+    ----------
+    ax : mpl_toolkits.mplot3d.axes3d.Axes3D
+        3D axis where the items will be added.
+    kwargs : dict
+        Dictionary with the items to be added. The keys are the items' types,
+        and the values are the items' data and parameters.
+
+    """
+    if 'scatter' in kwargs:
+        data = kwargs['scatter']
+        if isinstance(data, (list, tuple, np.ndarray)):
+            if isinstance(data, np.ndarray):
+                data = data.T
+            ax.scatter(*data)
+        elif isinstance(data, dict):
+            scatter_dict = copy.deepcopy(data)
+            for k, v in scatter_dict.items():
+                points = v.pop('data')    # Get N-by-3 numpy array from dict
+                ax.scatter(*points.T, **v)
+        else:
+            raise TypeError(f"Unknown type for 'scatter': {type(data)}. Try an array, list or dict.")
+    if 'lines' in kwargs:
+        data = kwargs['lines']
+        if isinstance(data, (list, tuple, np.ndarray)):
+            if isinstance(data, np.ndarray):
+                data = data.T
+            ax.plot(*data)
+        elif isinstance(data, dict):
+            lines_dict = copy.deepcopy(data)
+            for k, v in lines_dict.items():
+                lines = v.pop('data')   # Get N-by-3 numpy array from dict
+                ax.plot(*lines.T, **v)
+        else:
+            raise TypeError(f"Unknown type for 'lines': {type(data)}. Try an array, list or dict.")
+    if 'frames' in kwargs:
+        for k, v in kwargs['frames'].items():
+            data = v.copy()
+            add_frame(ax, dcm=data['attitude'], position=data.pop('position'), **data)
+    if 'ellipsoids' in kwargs:
+        for k, v in kwargs['ellipsoids'].items():
+            add_ellipsoid(ax, v, **v)
 
 def plot_data(*data, **kw):
     """
@@ -150,7 +209,7 @@ def plot_data(*data, **kw):
             if array_sz[0] > array_sz[1]:
                 # Transpose array if it has more rows than columns
                 array = array.T
-            index = indices[i] if indices is not None else np.arange(array_sz.shape[1])
+            index = indices[i] if indices is not None else np.arange(array_sz[0])
             for j, row in enumerate(array):
                 label = None
                 if labels:
@@ -167,7 +226,7 @@ def plot_data(*data, **kw):
         if yscales:
             axs[i, 0].set_yscale(yscales[i])
         if shades_spans is not None:
-            # Add shaded areas corresponding to TOUCHING areas
+            # Add shaded areas
             try:
                 if isinstance(shades_spans, (list, np.ndarray)):
                     current_spans = shades_spans[i] if np.copy(shades_spans).ndim > 2 else shades_spans
@@ -187,50 +246,34 @@ def plot_data(*data, **kw):
     fig.tight_layout()
     plt.show()
 
-def plot3(data, style='line', sphere=None) -> None:
+def plot3(**kwargs) -> None | tuple:
     """
     Plot 3-dimensional data in a cartesian coordinate system.
 
     Parameters
     ----------
-    data : numpy.ndarray
-        M-by-3 array of data.
-    sphere : list or dict.
-        List or dictionary with the parameters to draw a sphere. If a list is
-        given, it must be of the form [[a, b, c], [x, y, z]], where a, b, c are
-        the coordinates of the sphere's center, and x, y, z are the sphere's
-        main axes lengths. If a dictionary is given, it must be of the form
-        {'center': [a, b, c], 'axes': [x, y, z]}. If None, no sphere is drawn.
+    show : bool, optional
+        Show the plot after creating it. Default is True. Otherwise, the plot
+        Figure and Axes objects are returned.
 
     """
+    # Build the plot
     fig = plt.figure()
     ax = fig.add_subplot(projection='3d')
-    if style.lower() == 'scatter':
-        ax.scatter(data[:, 0], data[:, 1], data[:, 2], c=COLORS[0], alpha=0.1)
-    else:
-        ax.plot3D(data[:, 0], data[:, 1], data[:, 2], COLORS[0], lw=0.7)
+
+    # Add items
+    add_items(ax, **kwargs)
+
+    # Set properties of plot
+    plt.tight_layout()
     ax.set_xlabel('X')
     ax.set_ylabel('Y')
     ax.set_zlabel('Z')
-    if sphere is not None:
-        if isinstance(sphere, (list, tuple, np.ndarray)):
-            center, axes = sphere
-        elif isinstance(sphere, dict):
-            center = sphere.get("center", np.zeros(3))
-            axes = sphere.get("axes", np.ones(3))
-            # projection = sphere.get("projection", np.identity(3))
-        else:
-            raise TypeError("Unknown type for 'sphere'. Try a list or a dict.")
-        cx, cy, cz = center
-        sx, sy, sz = axes
-        u, v = np.mgrid[0:2*np.pi:20j, 0:np.pi:10j]
-        x = np.cos(u)*np.sin(v) * sx + cx
-        y = np.sin(u)*np.sin(v) * sy + cy
-        z = np.cos(v) * sz + cz
-        # x, y, z = projection @ np.c_[x, y, z].T
-        ax.plot_wireframe(x, y, z, color=COLORS[2], lw=0.3)
-    _set_axes_equal(ax)
-    plt.tight_layout()
+    ax.set_aspect('equal')      # Added in matplotlib 3.6
+
+    # Show or return the plot
+    if not kwargs.get('show', True):
+        return fig, ax
     plt.show()
 
 def plot_kinematics(data, ref_data: np.ndarray = None, tip: np.ndarray = None, split: np.ndarray = None) -> None:
@@ -304,7 +347,7 @@ def plot_kinematics(data, ref_data: np.ndarray = None, tip: np.ndarray = None, s
         ax.set_xlabel('X')
         ax.set_ylabel('Y')
         ax.set_zlabel('Z')
-        _set_axes_equal(ax)
+        ax.set_aspect('equal')      # Added in matplotlib 3.6
     plt.tight_layout()
     plt.show()
 
